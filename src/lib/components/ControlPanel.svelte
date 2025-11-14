@@ -121,8 +121,7 @@
 <section class="panel">
   <header>
     <div>
-      <h1>Tessellate Maps</h1>
-      <p>Export map tiles into a printable A4 grid.</p>
+      <h1>Export map tiles into <br /> a printable A4 grid</h1>
     </div>
     <button class="export" onclick={handleExport} disabled={isExporting}>
       {#if isExporting}
@@ -287,6 +286,7 @@
   h1 {
     font-size: 1.6rem;
     margin: 0;
+    padding-bottom: 1rem;
   }
 
   p {
