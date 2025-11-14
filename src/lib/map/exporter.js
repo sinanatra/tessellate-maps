@@ -24,8 +24,8 @@ async function renderBoundingBox(p, tiles, bbox, zoom) {
   const maxX = Math.floor(se.x / tileSize);
   const minY = Math.floor(nw.y / tileSize);
   const maxY = Math.floor(se.y / tileSize);
-  const offsetX = minX * tileSize;
-  const offsetY = minY * tileSize;
+  const originX = nw.x;
+  const originY = nw.y;
   const width = Math.max(1, Math.ceil(se.x - nw.x));
   const height = Math.max(1, Math.ceil(se.y - nw.y));
 
@@ -36,8 +36,8 @@ async function renderBoundingBox(p, tiles, bbox, zoom) {
       const record = tiles.getTile(zoom, tx, ty);
       await waitForTile(record);
       if (record.ready && record.image) {
-        const dx = tx * tileSize - offsetX;
-        const dy = ty * tileSize - offsetY;
+        const dx = tx * tileSize - originX;
+        const dy = ty * tileSize - originY;
         buffer.image(record.image, dx, dy, tileSize, tileSize);
       }
     }

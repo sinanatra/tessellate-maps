@@ -4,7 +4,7 @@
 
   let rows = 2;
   let cols = 2;
-  let zoomDelta = 1;
+  let zoomDelta = 0;
   let orientation = "portrait";
   let provider = "osm";
   let dpi = 300;

@@ -5,7 +5,7 @@
 	const {
 		rows = 2,
 		cols = 3,
-		zoomDelta = 2,
+		zoomDelta = 0,
 		orientation = 'portrait',
 		provider = 'osm',
 		dpi = 300,

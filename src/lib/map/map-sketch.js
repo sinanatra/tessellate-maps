@@ -1,6 +1,7 @@
 import { TileSystem } from "./tile-system";
 import { exportGrid, getA4Ratio } from "./exporter";
 import { TILE_PROVIDER_OPTIONS } from "./providers";
+import { createViewport, splitViewport } from "./viewport";
 
 export class MapSketch {
   constructor(target, initial = {}) {
@@ -9,7 +10,7 @@ export class MapSketch {
       rows: initial.rows ?? 2,
       cols: initial.cols ?? 3,
       zoom: initial.zoom ?? 15,
-      zoomDelta: initial.zoomDelta ?? 2,
+      zoomDelta: initial.zoomDelta ?? 0,
       orientation: initial.orientation ?? "portrait",
       provider: initial.provider ?? "osm",
       dpi: initial.dpi ?? 300,
@@ -30,9 +31,9 @@ export class MapSketch {
     this.tileSystem = null;
     this.viewbox = null;
     this.center = { lat: 52.52, lng: 13.405 };
-    this.viewboxDirty = true;
     this.stateSubscribers = new Set();
     this.shortcutListeners = new Set();
+    this.viewport = null;
   }
 
   async init() {
@@ -57,7 +58,6 @@ export class MapSketch {
       p.createCanvas(Math.max(1, rect.width), Math.max(1, rect.height));
       p.pixelDensity(1);
       this.tileSystem = new TileSystem(p, this.provider);
-      this.viewboxDirty = true;
       this.notifyState();
       resolve();
     };
@@ -99,18 +99,20 @@ export class MapSketch {
     if (!this.tileSystem) return;
     p.background("azure");
     const frame = this.computeGridFrame(p.width, p.height);
-    const tileSize = this.tileSystem.getTileSize();
-    const centerPixel = this.tileSystem.latLngToPixel(
-      this.center.lng,
-      this.center.lat,
-      this.zoom
+    const viewport = createViewport(
+      this.tileSystem,
+      this.center,
+      this.zoom,
+      frame
     );
-    const viewLeft = centerPixel.x - frame.width / 2;
-    const viewTop = centerPixel.y - frame.height / 2;
+    this.applyViewport(viewport);
+    const tileSize = this.tileSystem.getTileSize();
+    const { left: viewLeft, top: viewTop, width, height } =
+      viewport.pixelBounds;
     const minX = Math.floor(viewLeft / tileSize);
-    const maxX = Math.floor((viewLeft + frame.width) / tileSize);
+    const maxX = Math.floor((viewLeft + width) / tileSize);
     const minY = Math.floor(viewTop / tileSize);
-    const maxY = Math.floor((viewTop + frame.height) / tileSize);
+    const maxY = Math.floor((viewTop + height) / tileSize);
 
     const ctx = p.drawingContext;
     ctx.save();
@@ -131,10 +133,6 @@ export class MapSketch {
 
     ctx.restore();
     this.drawGrid(p, frame);
-
-    if (this.viewboxDirty) {
-      this.updateViewbox(frame);
-    }
   }
 
   drawGrid(p, frame) {
@@ -161,7 +159,7 @@ export class MapSketch {
     this.center.lng += previous.lng - current.lng;
     this.center.lat = this.clampLatitude(this.center.lat);
     this.center.lng = this.normalizeLongitude(this.center.lng);
-    this.markViewboxDirty();
+    this.invalidateViewport();
   }
 
   setZoom(nextZoom, focusX, focusY) {
@@ -173,7 +171,7 @@ export class MapSketch {
     const after = this.screenToWorld(focusX, focusY);
     this.center.lat += before.lat - after.lat;
     this.center.lng += before.lng - after.lng;
-    this.markViewboxDirty();
+    this.invalidateViewport();
     this.notifyState();
   }
 
@@ -207,67 +205,40 @@ export class MapSketch {
     const nextWidth = Math.max(1, width ?? rect.width);
     const nextHeight = Math.max(1, height ?? rect.height);
     this.p.resizeCanvas(nextWidth, nextHeight);
-    this.markViewboxDirty();
+    this.invalidateViewport();
   }
 
-  markViewboxDirty() {
-    this.viewboxDirty = true;
-  }
-
-  updateViewbox(frame) {
-    if (!this.tileSystem || !this.p) return;
-    const grid = frame ?? this.computeGridFrame(this.p.width, this.p.height);
-    const centerPixel = this.tileSystem.latLngToPixel(
-      this.center.lng,
-      this.center.lat,
-      this.zoom
-    );
-    const spanX = grid.width / 2;
-    const spanY = grid.height / 2;
-    const topLeft = this.tileSystem.pixelToLatLng(
-      centerPixel.x - spanX,
-      centerPixel.y - spanY,
-      this.zoom
-    );
-    const bottomRight = this.tileSystem.pixelToLatLng(
-      centerPixel.x + spanX,
-      centerPixel.y + spanY,
-      this.zoom
-    );
-    this.viewbox = {
-      n: topLeft.lat,
-      s: bottomRight.lat,
-      w: topLeft.lng,
-      e: bottomRight.lng,
-    };
-    this.viewboxDirty = false;
+  applyViewport(viewport) {
+    this.viewport = viewport;
+    this.viewbox = { ...viewport.latLngBounds };
     this.notifyState();
+  }
+
+  invalidateViewport() {
+    this.viewport = null;
+    this.viewbox = null;
+  }
+
+  updateViewbox(currentViewport) {
+    if (!this.tileSystem || !this.p) return;
+    let viewport = currentViewport;
+    if (!viewport) {
+      const frame = this.computeGridFrame(this.p.width, this.p.height);
+      viewport = createViewport(this.tileSystem, this.center, this.zoom, frame);
+    }
+    this.applyViewport(viewport);
   }
 
   async exportGrid() {
     if (!this.tileSystem || !this.p) return;
-    const frame = this.computeGridFrame(this.p.width, this.p.height);
-    const cellWidth = frame.width / this.cols;
-    const cellHeight = frame.height / this.rows;
-    const bboxes = [];
-    for (let row = 0; row < this.rows; row += 1) {
-      for (let col = 0; col < this.cols; col += 1) {
-        const x0 = frame.left + col * cellWidth;
-        const y0 = frame.top + row * cellHeight;
-        const x1 = x0 + cellWidth;
-        const y1 = y0 + cellHeight;
-        const nw = this.screenToWorld(x0, y0);
-        const se = this.screenToWorld(x1, y1);
-        bboxes.push({
-          n: nw.lat,
-          s: se.lat,
-          w: nw.lng,
-          e: se.lng,
-          row,
-          col,
-        });
-      }
+    let viewport = this.viewport;
+    if (!viewport) {
+      const frame = this.computeGridFrame(this.p.width, this.p.height);
+      viewport = createViewport(this.tileSystem, this.center, this.zoom, frame);
+      this.applyViewport(viewport);
     }
+    const bboxes = splitViewport(this.tileSystem, viewport, this.rows, this.cols);
+
     await exportGrid(this.p, this.tileSystem, bboxes, {
       rows: this.rows,
       cols: this.cols,
@@ -287,7 +258,7 @@ export class MapSketch {
     if (typeof zoomLevel === "number") {
       this.zoom = Math.max(1, Math.min(19, Math.round(zoomLevel)));
     }
-    this.markViewboxDirty();
+    this.invalidateViewport();
     this.notifyState();
   }
 
@@ -334,12 +305,12 @@ export class MapSketch {
     if (safeRows === this.rows && safeCols === this.cols) return;
     this.rows = safeRows;
     this.cols = safeCols;
+    this.invalidateViewport();
     this.notifyState();
-    this.markViewboxDirty();
   }
 
   setZoomDelta(delta) {
-    const safe = Math.max(1, Math.round(delta));
+    const safe = Math.max(0, Math.round(delta));
     if (safe === this.zoomDelta) return;
     this.zoomDelta = safe;
     this.notifyState();
@@ -348,8 +319,8 @@ export class MapSketch {
   setOrientation(orientation) {
     if (orientation === this.orientation) return;
     this.orientation = orientation;
+    this.invalidateViewport();
     this.notifyState();
-    this.markViewboxDirty();
   }
 
   setProvider(key) {
@@ -358,7 +329,7 @@ export class MapSketch {
     if (this.tileSystem) {
       this.tileSystem.setProvider(key);
     }
-    this.markViewboxDirty();
+    this.invalidateViewport();
     this.notifyState();
   }
 

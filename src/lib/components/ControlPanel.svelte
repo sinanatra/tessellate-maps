@@ -27,7 +27,8 @@
   function updateNumber(field, value) {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
-    const minimum = field === "dpi" ? 72 : 1;
+    const minimum =
+      field === "dpi" ? 72 : field === "zoomDelta" ? 0 : 1;
     dispatch("change", {
       [field]: Math.max(minimum, parsed),
     });
