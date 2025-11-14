@@ -27,8 +27,7 @@
   function updateNumber(field, value) {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
-    const minimum =
-      field === "dpi" ? 72 : field === "zoomDelta" ? 0 : 1;
+    const minimum = field === "dpi" ? 72 : field === "zoomDelta" ? 0 : 1;
     dispatch("change", {
       [field]: Math.max(minimum, parsed),
     });
@@ -271,13 +270,6 @@
       <div class="placeholder">Map loading… pan or zoom on canvas</div>
     {/if}
   </div>
-
-  <footer>
-    <p>
-      <kbd>+/-</kbd> to zoom
-    </p>
-    <p>Drag to pan the map</p>
-  </footer>
 </section>
 
 <style>

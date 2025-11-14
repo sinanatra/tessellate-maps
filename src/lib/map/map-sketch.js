@@ -74,6 +74,11 @@ export class MapSketch {
       this.handleDrag(p);
     };
 
+    p.touchMoved = () => {
+      this.handleDrag(p);
+      return false;
+    };
+
     // p.mouseWheel = (event) => {
     //   const delta = event.deltaY > 0 ? -1 : 1;
     //   this.setZoom(this.zoom + delta, p.mouseX, p.mouseY);
@@ -153,6 +158,9 @@ export class MapSketch {
 
   handleDrag(p) {
     if (!this.tileSystem) return;
+    if (Array.isArray(p.touches) && p.touches.length > 1) {
+      return;
+    }
     const current = this.screenToWorld(p.mouseX, p.mouseY);
     const previous = this.screenToWorld(p.pmouseX, p.pmouseY);
     this.center.lat += previous.lat - current.lat;
@@ -173,6 +181,13 @@ export class MapSketch {
     this.center.lng += before.lng - after.lng;
     this.invalidateViewport();
     this.notifyState();
+  }
+
+  zoomBy(step) {
+    if (!this.p) return;
+    const focusX = this.p.width / 2;
+    const focusY = this.p.height / 2;
+    this.setZoom(this.zoom + step, focusX, focusY);
   }
 
   screenToWorld(x, y) {
