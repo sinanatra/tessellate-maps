@@ -55,6 +55,7 @@ export async function exportGrid(p, tiles, bboxes, options) {
     orientation,
     dpi,
     filePrefix = "map",
+    innerGrid = 0,
   } = options;
 
   const targetZoom = Math.min(19, zoom + zoomDelta);
@@ -77,6 +78,7 @@ export async function exportGrid(p, tiles, bboxes, options) {
       );
       const out = p.createGraphics(widthPx, heightPx);
       out.image(graphics, 0, 0, widthPx, heightPx);
+      drawInnerGrid(out, innerGrid);
       drawTileLabel(out, getColumnLabel(col), row + 1);
       const filename = `${filePrefix}_${String(row + 1).padStart(
         2,
@@ -119,5 +121,24 @@ function drawTileLabel(graphics, colLabel, rowNumber) {
   
   graphics.fill("#111");
   graphics.text(label, labelX, labelY);
+  graphics.pop();
+}
+
+function drawInnerGrid(graphics, divisions) {
+  const count = Math.max(0, Math.round(divisions));
+  if (count < 2) return;
+  const cellWidth = graphics.width / count;
+  const cellHeight = graphics.height / count;
+  graphics.push();
+  graphics.stroke(0, 0, 0, 80);
+  graphics.strokeWeight(1);
+  for (let i = 1; i < count; i += 1) {
+    const x = i * cellWidth;
+    graphics.line(x, 0, x, graphics.height);
+  }
+  for (let j = 1; j < count; j += 1) {
+    const y = j * cellHeight;
+    graphics.line(0, y, graphics.width, y);
+  }
   graphics.pop();
 }

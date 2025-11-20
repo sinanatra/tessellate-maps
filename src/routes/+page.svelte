@@ -9,6 +9,7 @@
   let provider = "osm";
   let dpi = 300;
   let filePrefix = "map";
+  let innerGrid = 0;
   let isExporting = false;
 
   let canvasRef = null;
@@ -23,6 +24,7 @@
     if (detail.provider) provider = detail.provider;
     if (typeof detail.dpi === "number") dpi = detail.dpi;
     if (detail.filePrefix) filePrefix = detail.filePrefix;
+    if (typeof detail.innerGrid === "number") innerGrid = detail.innerGrid;
   }
 
   async function handleExport() {
@@ -57,6 +59,7 @@
       {isExporting}
       {dpi}
       {filePrefix}
+      {innerGrid}
       on:change={handleControlChange}
       on:export={handleExport}
       on:locate={handleLocate}
@@ -72,6 +75,7 @@
       {provider}
       {dpi}
       {filePrefix}
+      {innerGrid}
       on:state={(event) => (latestState = event.detail)}
       on:exportshortcut={handleExport}
     />

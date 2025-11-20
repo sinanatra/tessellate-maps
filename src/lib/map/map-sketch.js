@@ -15,6 +15,7 @@ export class MapSketch {
       provider: initial.provider ?? "osm",
       dpi: initial.dpi ?? 300,
       filePrefix: initial.filePrefix ?? "map",
+      innerGrid: initial.innerGrid ?? 0,
     };
 
     this.rows = this.options.rows;
@@ -25,6 +26,7 @@ export class MapSketch {
     this.provider = this.options.provider;
     this.dpi = this.options.dpi;
     this.filePrefix = this.options.filePrefix ?? "map";
+    this.innerGrid = this.options.innerGrid;
 
     this.p = null;
     this.p5Constructor = null;
@@ -166,6 +168,7 @@ export class MapSketch {
       const x = frame.left + col * cellWidth;
       p.line(x, frame.top, x, frame.top + frame.height);
     }
+    this.drawInnerGrid(p, frame, cellWidth, cellHeight);
     for (let row = 0; row < this.rows; row += 1) {
       for (let col = 0; col < this.cols; col += 1) {
         const label = `${this.getColumnLabel(col)}${row + 1}`;
@@ -179,9 +182,34 @@ export class MapSketch {
           labelY - padding,
           textWidth + padding * 2,
           fontSize + padding * 2
-       );
+        );
         p.fill("white");
         p.text(label, labelX, labelY);
+      }
+    }
+    p.pop();
+  }
+
+  drawInnerGrid(p, frame, cellWidth, cellHeight) {
+    const subdivisions = Math.max(0, Math.round(this.innerGrid));
+    if (subdivisions < 2) return;
+    const innerWidth = cellWidth / subdivisions;
+    const innerHeight = cellHeight / subdivisions;
+    p.push();
+    p.stroke("rgba(0, 0, 255, 0.35)");
+    p.strokeWeight(1);
+    for (let row = 0; row < this.rows; row += 1) {
+      for (let col = 0; col < this.cols; col += 1) {
+        const originX = frame.left + col * cellWidth;
+        const originY = frame.top + row * cellHeight;
+        for (let i = 1; i < subdivisions; i += 1) {
+          const x = originX + i * innerWidth;
+          p.line(x, originY, x, originY + cellHeight);
+        }
+        for (let j = 1; j < subdivisions; j += 1) {
+          const y = originY + j * innerHeight;
+          p.line(originX, y, originX + cellWidth, y);
+        }
       }
     }
     p.pop();
@@ -298,6 +326,7 @@ export class MapSketch {
       orientation: this.orientation,
       dpi: this.dpi,
       filePrefix: this.filePrefix,
+      innerGrid: this.innerGrid,
     });
   }
 
@@ -341,6 +370,7 @@ export class MapSketch {
       zoomDelta: this.zoomDelta,
       provider: this.provider,
       orientation: this.orientation,
+      innerGrid: this.innerGrid,
       viewbox: this.viewbox ? { ...this.viewbox } : null,
     };
   }
@@ -391,6 +421,13 @@ export class MapSketch {
 
   setFilePrefix(prefix) {
     this.filePrefix = prefix;
+  }
+
+  setInnerGrid(divisions) {
+    const safe = Math.max(0, Math.round(divisions));
+    if (safe === this.innerGrid) return;
+    this.innerGrid = safe;
+    this.notifyState();
   }
 
   destroy() {

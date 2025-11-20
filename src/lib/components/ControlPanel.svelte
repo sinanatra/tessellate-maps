@@ -14,6 +14,7 @@
     isExporting = false,
     dpi = 300,
     filePrefix = "map",
+    innerGrid = 0,
   } = $props();
 
   const dispatch = createEventDispatcher();
@@ -27,7 +28,10 @@
   function updateNumber(field, value) {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
-    const minimum = field === "dpi" ? 72 : field === "zoomDelta" ? 0 : 1;
+    const minimum =
+      field === "dpi" ? 72 : field === "zoomDelta" || field === "innerGrid"
+        ? 0
+        : 1;
     dispatch("change", {
       [field]: Math.max(minimum, parsed),
     });
@@ -159,6 +163,15 @@
         value={zoomDelta}
         oninput={(event) =>
           updateNumber("zoomDelta", event.currentTarget.value)}
+      />
+    </label>
+    <label>
+      <span>Inner grid</span>
+      <input
+        type="number"
+        min="0"
+        value={innerGrid}
+        oninput={(event) => updateNumber("innerGrid", event.currentTarget.value)}
       />
     </label>
     <label>

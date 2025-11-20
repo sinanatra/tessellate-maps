@@ -9,7 +9,8 @@
 		orientation = 'portrait',
 		provider = 'osm',
 		dpi = 300,
-		filePrefix = 'map'
+		filePrefix = 'map',
+		innerGrid = 0
 	} = $props();
 
 	const dispatch = createEventDispatcher();
@@ -27,7 +28,8 @@
 			orientation,
 			provider,
 			dpi,
-			filePrefix
+			filePrefix,
+			innerGrid
 		});
 
 		const teardown = [];
@@ -85,6 +87,11 @@
 	$effect(() => {
 		if (!sketch) return;
 		sketch.setFilePrefix(filePrefix);
+	});
+
+	$effect(() => {
+		if (!sketch) return;
+		sketch.setInnerGrid(innerGrid);
 	});
 
 	function zoomIn() {
