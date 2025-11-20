@@ -77,6 +77,7 @@ export async function exportGrid(p, tiles, bboxes, options) {
       );
       const out = p.createGraphics(widthPx, heightPx);
       out.image(graphics, 0, 0, widthPx, heightPx);
+      drawTileLabel(out, getColumnLabel(col), row + 1);
       const filename = `${filePrefix}_${String(row + 1).padStart(
         2,
         "0"
@@ -89,4 +90,34 @@ export async function exportGrid(p, tiles, bboxes, options) {
 
 function pause(duration) {
   return new Promise((resolve) => setTimeout(resolve, duration));
+}
+
+function getColumnLabel(index) {
+  let n = Math.max(0, Math.floor(index));
+  let label = "";
+  while (n >= 0) {
+    label = String.fromCharCode((n % 26) + 65) + label;
+    n = Math.floor(n / 26) - 1;
+  }
+  return label;
+}
+
+function drawTileLabel(graphics, colLabel, rowNumber) {
+  const label = `${colLabel}${rowNumber}`;
+  const size = Math.max(
+    14,
+    Math.round(Math.min(graphics.width, graphics.height) * 0.02)
+  );
+  const padding = Math.round(size * 0.4);
+  const labelX = padding;
+  const labelY = padding + Math.round(size * 0.5);
+
+  graphics.push();
+  graphics.textSize(size);
+  graphics.textAlign(graphics.LEFT, graphics.TOP);
+  const textWidth = graphics.textWidth(label);
+  
+  graphics.fill("#111");
+  graphics.text(label, labelX, labelY);
+  graphics.pop();
 }

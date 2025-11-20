@@ -112,8 +112,12 @@ export class MapSketch {
     );
     this.applyViewport(viewport);
     const tileSize = this.tileSystem.getTileSize();
-    const { left: viewLeft, top: viewTop, width, height } =
-      viewport.pixelBounds;
+    const {
+      left: viewLeft,
+      top: viewTop,
+      width,
+      height,
+    } = viewport.pixelBounds;
     const minX = Math.floor(viewLeft / tileSize);
     const maxX = Math.floor((viewLeft + width) / tileSize);
     const minY = Math.floor(viewTop / tileSize);
@@ -141,11 +145,19 @@ export class MapSketch {
   }
 
   drawGrid(p, frame) {
+    p.push();
     p.stroke("blue");
     p.noFill();
     p.rect(frame.left, frame.top, frame.width, frame.height);
     const cellWidth = frame.width / this.cols;
     const cellHeight = frame.height / this.rows;
+    const fontSize = Math.min(
+      18,
+      Math.max(12, Math.min(cellWidth, cellHeight) * 0.12)
+    );
+    const padding = Math.round(fontSize * 0.35);
+    p.textSize(fontSize);
+    p.textAlign(p.LEFT, p.TOP);
     for (let row = 0; row <= this.rows; row += 1) {
       const y = frame.top + row * cellHeight;
       p.line(frame.left, y, frame.left + frame.width, y);
@@ -154,6 +166,25 @@ export class MapSketch {
       const x = frame.left + col * cellWidth;
       p.line(x, frame.top, x, frame.top + frame.height);
     }
+    for (let row = 0; row < this.rows; row += 1) {
+      for (let col = 0; col < this.cols; col += 1) {
+        const label = `${this.getColumnLabel(col)}${row + 1}`;
+        const labelX = frame.left + col * cellWidth + padding;
+        const labelY = frame.top + row * cellHeight + padding;
+        const textWidth = p.textWidth(label);
+        p.noStroke();
+        p.fill("blue");
+        p.rect(
+          labelX - padding,
+          labelY - padding,
+          textWidth + padding * 2,
+          fontSize + padding * 2
+       );
+        p.fill("white");
+        p.text(label, labelX, labelY);
+      }
+    }
+    p.pop();
   }
 
   handleDrag(p) {
@@ -252,7 +283,12 @@ export class MapSketch {
       viewport = createViewport(this.tileSystem, this.center, this.zoom, frame);
       this.applyViewport(viewport);
     }
-    const bboxes = splitViewport(this.tileSystem, viewport, this.rows, this.cols);
+    const bboxes = splitViewport(
+      this.tileSystem,
+      viewport,
+      this.rows,
+      this.cols
+    );
 
     await exportGrid(this.p, this.tileSystem, bboxes, {
       rows: this.rows,
@@ -394,5 +430,15 @@ export class MapSketch {
     if (normalized > 180) normalized -= 360;
     if (normalized < -180) normalized += 360;
     return normalized;
+  }
+
+  getColumnLabel(index) {
+    let n = Math.max(0, Math.floor(index));
+    let label = "";
+    while (n >= 0) {
+      label = String.fromCharCode((n % 26) + 65) + label;
+      n = Math.floor(n / 26) - 1;
+    }
+    return label;
   }
 }
