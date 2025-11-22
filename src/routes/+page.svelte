@@ -9,7 +9,7 @@
   let provider = "osm";
   let dpi = 300;
   let filePrefix = "map";
-  let innerGrid = 0;
+  let innerGrid = 20;
   let isExporting = false;
 
   let canvasRef = null;

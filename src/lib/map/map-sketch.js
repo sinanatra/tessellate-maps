@@ -196,7 +196,8 @@ export class MapSketch {
     const innerWidth = cellWidth / subdivisions;
     const innerHeight = cellHeight / subdivisions;
     p.push();
-    p.stroke("rgba(0, 0, 255, 0.35)");
+    p.stroke("rgba(0, 0, 0, 0.35)");
+    // p.strokeWeight(1);
     p.strokeWeight(1);
     for (let row = 0; row < this.rows; row += 1) {
       for (let col = 0; col < this.cols; col += 1) {
